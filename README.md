@@ -1,29 +1,25 @@
 # cc-link
 
-> Call Claude Code with plain language or simple commands — right inside [nanobot](https://github.com/nanobot) 🐱 or [openclaw](https://github.com/openclaw) 🦞.
+[中文文档](./README_zh.md)
 
-No switching terminals. No copy-pasting. Just type `cc myproject -m build a login page` and Claude Code gets to work in a persistent session, project by project.
+> Call [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with plain language or simple commands — right inside [nanobot](https://github.com/nanobot-ai/nanobot) 🐱 and [openclaw](https://github.com/open-claw/openclaw) 🦞.
 
----
+No terminal switching. No copy-pasting prompts. Type `cc myproject -m build a login page` in your chat, and Claude Code starts coding in a persistent, project-scoped session.
 
 ## Why cc-link?
 
-Most AI assistants stop at giving advice. cc-link goes further — it bridges your chat agent (nanobot / openclaw) directly to **Claude Code**, Anthropic's agentic coding CLI. You get:
-
-- **Persistent sessions** — context is remembered across messages within the same project
-- **Zero friction** — short commands or plain natural language, no CLI knowledge required
-- **Multi-project** — manage independent Claude Code sessions for each of your projects
-- **Context visibility** — token usage shown on every response so you always know where you stand
-
----
+- **Dead simple** — short commands like `cc todo -m fix the bug` or just describe what you want in plain language
+- **Persistent sessions** — Claude Code remembers context across messages within the same project
+- **Multi-project** — each project gets its own isolated Claude Code session
+- **Context visibility** — token usage displayed on every response: `📊 claude-opus-4-6: 20% (40000/200000 tokens)`
 
 ## Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`claude` CLI) — run `claude login` on first use
-- `jq` — `apt install jq` or `brew install jq`
-- nanobot or openclaw with skill support
-
----
+| Dependency | Install |
+|------------|---------|
+| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | See official docs, then run `claude login` |
+| jq | `apt install jq` or `brew install jq` |
+| nanobot or openclaw | With skill support enabled |
 
 ## Installation
 
@@ -35,79 +31,74 @@ Place the skill files in your agent's skill directory:
 └── cc.sh
 ```
 
-All projects are stored under:
+## Quick Start
 
-```
-{workspace}/cc-projects/{project-name}/
-```
+```bash
+# Create a project
+cc create myapp
 
----
+# Or clone from GitHub
+cc create myapp -u https://github.com/user/repo.git
 
-## Usage
+# Send a message
+cc myapp -m add user authentication with JWT
 
-### Short Commands
+# Start a fresh conversation
+cc myapp -new
 
-```
-cc {project} -m {message}          Send a message to a project session
-cc {project} -new                  Start a fresh session
-cc {project} -new {message}        Fresh session + send first message
-cc {project} -compact              Compact (summarize) the session context
-cc create {project}                Create a new project
-cc create {project} -u {git-url}   Clone a Git repo as a project
-cc delete {project}                Delete a project and its session
-```
+# Start fresh + send first message in one shot
+cc myapp -new refactor the auth module
 
-### Natural Language
+# Compress context when running low
+cc myapp -compact
 
-You can also describe what you want in plain text:
-
-```
-用cc在todolist项目提交一个新功能：add a dark mode toggle
-用cc在nanobot项目提交一个问题：how does the session resumption work?
-用cc在myapp项目提交任务（plan模式）：refactor the auth module
+# Done with a project
+cc delete myapp
 ```
 
----
-
-## Command Reference
+## Commands
 
 | Command | Description |
 |---------|-------------|
-| `cc {project} -m {content}` | Send a message to the project's Claude Code session |
-| `cc {project} -new` | Clear the current session |
-| `cc {project} -new {content}` | Clear session and send the first message |
-| `cc {project} -compact` | Compact the session context window |
-| `cc create {project}` | Create an empty project directory |
-| `cc create {project} -u {url}` | Clone a Git repo into the project directory |
-| `cc delete {project}` | Delete the project directory and session record |
+| `cc {project} -m {message}` | Send a message to the project session |
+| `cc {project} -new` | Start a fresh session |
+| `cc {project} -new {message}` | Fresh session + send first message |
+| `cc {project} -compact` | Compact the session context |
+| `cc create {project}` | Create an empty project |
+| `cc create {project} -u {url}` | Clone a Git repo as a new project |
+| `cc delete {project}` | Delete project and session data |
 
-### Plan Mode
+## Natural Language
 
-Append `(plan模式)` / `(plan mode)` to any natural language request to run Claude Code in read-only plan mode — useful for reviewing before making changes.
-
----
-
-## System Prompt (Optional)
-
-To give Claude Code a custom persona or context for a project, create:
+You can also just describe what you want:
 
 ```
-{workspace}/cc-projects/{project-name}/system_prompt.txt
+用cc在todolist项目提交一个新功能：add dark mode
+用cc在myapp项目问一下：how does the auth flow work?
 ```
 
-It is automatically applied on every call to that project.
+Add `(plan模式)` to run Claude Code in read-only plan mode.
 
----
+## Custom System Prompt
 
-## Context Window Usage
-
-Every response includes a token usage line at the top:
+Create a `system_prompt.txt` in the project directory to give Claude Code a custom persona:
 
 ```
-📊 claude-opus-4-6: 20% (40000/200000 tokens)
+{workspace}/cc-projects/{project}/system_prompt.txt
 ```
 
----
+Automatically applied on every call.
+
+## How It Works
+
+```
+User chat ──→ nanobot/openclaw ──→ cc.sh ──→ Claude Code CLI ──→ response
+                (SKILL.md parses)    (session mgmt)   (does the work)
+```
+
+- Sessions are stored in `{workspace}/cc-projects/.sessions.json`
+- Projects live under `{workspace}/cc-projects/{project}/`
+- Failed session resume automatically falls back to a new session
 
 ## License
 
