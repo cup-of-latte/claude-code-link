@@ -194,31 +194,6 @@ NEW_SID=$(echo "$OUTPUT" | jq -r '.session_id // empty' 2>/dev/null)
 [[ -n "$NEW_SID" ]] && save_session_id "$NEW_SID"
 
 # ──────────────────────────────────────────────
-# Context window usage: prepend to result
+# Output result as plain text
 # ──────────────────────────────────────────────
-USAGE_LINE=$(echo "$OUTPUT" | jq -r '
-    if .modelUsage and (.modelUsage | length > 0) then
-        [ .modelUsage | to_entries[] |
-            ( .value.inputTokens          // 0
-            + (.value.cacheReadInputTokens  // 0)
-            + (.value.cacheCreationInputTokens // 0)
-            ) as $used |
-            (.value.contextWindow // 200000) as $max |
-            "📊 \(.key): \(if $max > 0 then ($used * 100 / $max | floor) else 0 end)% (\($used)/\($max) tokens)"
-        ] | join(" | ")
-    elif .usage then
-        ( (.usage.input_tokens // 0)
-        + (.usage.cache_creation_input_tokens // 0)
-        + (.usage.cache_read_input_tokens // 0)
-        ) as $used |
-        200000 as $max |
-        "📊 上下文用量：\(($used * 100 / $max) | floor)% (\($used)/\($max) tokens)"
-    else empty end
-' 2>/dev/null)
-
-if [[ -n "$USAGE_LINE" ]]; then
-    OUTPUT=$(echo "$OUTPUT" | jq --arg u "$USAGE_LINE" \
-        '.result = $u + "\n\n" + (.result // "")' 2>/dev/null || echo "$OUTPUT")
-fi
-
-echo "$OUTPUT"
+echo "$OUTPUT" | jq -r '.result // ""' 2>/dev/null

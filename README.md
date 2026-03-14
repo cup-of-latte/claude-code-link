@@ -11,7 +11,6 @@ No terminal switching. No copy-pasting prompts. Type `cc myproject -m build a lo
 - **Dead simple** — short commands like `cc todo -m fix the bug` or just describe what you want in plain language
 - **Persistent sessions** — Claude Code remembers context across messages within the same project
 - **Multi-project** — each project gets its own isolated Claude Code session
-- **Context visibility** — token usage displayed on every response: `📊 claude-opus-4-6: 20% (40000/200000 tokens)`
 
 ## Requirements
 
@@ -99,6 +98,10 @@ User chat ──→ nanobot/openclaw ──→ cc.sh ──→ Claude Code CLI �
 - Sessions are stored in `{workspace}/cc-projects/.sessions.json`
 - Projects live under `{workspace}/cc-projects/{project}/`
 - Failed session resume automatically falls back to a new session
+
+## Roadmap
+
+- [ ] **Context window usage display** — show token usage percentage on every response (e.g. `📊 claude-opus-4-6: 20% (40000/200000 tokens)`)
 
 ## License
 

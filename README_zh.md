@@ -9,7 +9,6 @@
 - **够简单** — 短命令 `cc todo -m 修个bug` 或者直接说人话都行
 - **有记忆** — 同一项目的对话共享上下文，Claude Code 记得你们聊过什么
 - **多项目** — 每个项目独立会话，互不干扰
-- **看得见** — 每次回复显示 token 用量：`📊 claude-opus-4-6: 20% (40000/200000 tokens)`
 
 ## 环境要求
 
@@ -97,6 +96,10 @@ cc delete myapp
 - 会话存储在 `{workspace}/cc-projects/.sessions.json`
 - 项目目录在 `{workspace}/cc-projects/{项目名}/`
 - 会话恢复失败时自动回退为新会话
+
+## 计划中的功能
+
+- [ ] **上下文窗口用量显示** — 每次回复显示 token 使用百分比（如 `📊 claude-opus-4-6: 20% (40000/200000 tokens)`）
 
 ## License
 
