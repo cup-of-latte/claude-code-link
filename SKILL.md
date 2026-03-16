@@ -29,6 +29,7 @@ jq --version # JSON 处理工具
 | `cc {project} -m {content}` | 向项目发送消息 | `bash cc.sh --project {project} --content "{content}"` |
 | `cc {project} -new [content]` | 新建会话（可选附带首条消息） | 无 content：`bash cc.sh --project {project} --content "/new"`；有 content：先 `/new` 再 `bash cc.sh --project {project} --new --content "{content}"` |
 | `cc {project} -compact` | 压缩当前会话上下文 | `bash cc.sh --project {project} --content "/compact"` |
+| `cc {project} --usage` | 查看上下文窗口使用率 | `bash cc.sh --project {project} --usage` |
 
 ### 项目管理指令
 
@@ -42,11 +43,11 @@ jq --version # JSON 处理工具
 
 1. 输入以 `cc ` 开头，第二个词判断指令类型：
    - `create` / `delete` → 项目管理指令
-   - 其他 → 项目名，继续解析第三个词（`-m`、`-new`、`-compact`）
+   - 其他 → 项目名，继续解析第三个词（`-m`、`-new`、`-compact`、`--usage`）
 2. `-m` 后面跟随的所有文字为 `CONTENT`，**完整保留，不截断**
 3. `-new` 后面如果有文字，则为新会话的首条消息 `CONTENT`；没有则仅清除会话
 4. `-u` 后面为 Git 仓库 URL
-5. `-compact` 和 `delete` 无需额外内容
+5. `-compact`、`--usage` 和 `delete` 无需额外内容
 
 ### 指令示例
 
@@ -58,6 +59,7 @@ cc todolist -compact
 cc create myproject
 cc create myproject -u https://github.com/user/repo.git
 cc delete myproject
+cc todolist --usage
 ```
 
 ## 自然语言触发（次优先级）
@@ -92,6 +94,7 @@ cc delete myproject
 | `cc todolist -new` | 仅新建会话 | `--project todolist --content "/new"` |
 | `cc todolist -new 帮我写自我介绍` | 新建 + 发送 | 先 `--content "/new"`，再 `--project todolist --new --content "帮我写自我介绍"` |
 | `cc todolist -compact` | 压缩上下文 | `--project todolist --content "/compact"` |
+| `cc todolist --usage` | 查看上下文使用率 | `--project todolist --usage` |
 | `cc create demo` | 创建项目 | `--action create --project demo` |
 | `cc create demo -u https://...` | 克隆创建 | `--action create --project demo --git-url "https://..."` |
 | `cc delete demo` | 删除项目 | `--action delete --project demo` |
@@ -138,14 +141,9 @@ bash {skill_dir}/cc.sh --project "PROJECT" --new --content "CONTENT"
 
 ### 规则三：原样透传结果，禁止加工
 
-cc.sh 的输出是**纯文本**（不是 JSON），**直接就是要展示给用户的内容**。
+脚本输出 JSON 格式，直接将 `result` 字段的完整内容返回给用户即可。
 
-**必须将 exec 命令的完整输出原样返回给用户**，不得：
-- 自行总结、缩写、提炼要点
-- 添加自己的分析或建议
-- 只摘取部分内容
-- 用自己的话重新表述
-- 删除任何一行
+**禁止对 result 内容做任何总结、缩写、改写或省略。**
 
 ## 执行流程
 
@@ -175,7 +173,7 @@ bash {skill_dir}/cc.sh --action delete --project "PROJECT"
 
 ### 3. 返回结果
 
-脚本输出**纯文本**（非 JSON），直接将 exec 的完整输出原样返回给用户即可。不需要解析、不需要提取字段、不需要任何加工。
+脚本输出 JSON 格式，将 `result` 字段的完整内容原样返回给用户。
 
 ## 会话管理
 

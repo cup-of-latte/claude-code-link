@@ -44,6 +44,7 @@ CONTENT=""
 MODE=""
 GIT_URL=""
 NEW_SESSION=false
+USAGE_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -53,8 +54,9 @@ while [[ $# -gt 0 ]]; do
         --mode)     MODE="$2";     shift 2 ;;
         --git-url)  GIT_URL="$2";  shift 2 ;;
         --new)      NEW_SESSION=true; shift ;;
+        --usage|-usg) USAGE_MODE=true; shift ;;
         -h|--help)
-            echo "Usage: cc.sh --project PROJECT [--action create|delete] [--content CONTENT] [--mode plan] [--git-url URL] [--new]"
+            echo "Usage: cc.sh --project PROJECT [--action create|delete] [--content CONTENT] [--mode plan] [--git-url URL] [--new] [--usage]"
             exit 0 ;;
         *)
             echo "Error: Unknown argument '$1'" >&2
@@ -114,7 +116,30 @@ if [[ "$ACTION" == "delete" ]]; then
         tmp=$(jq --arg p "$PROJECT" 'del(.[$p])' "$SESSIONS_FILE")
         echo "$tmp" > "$SESSIONS_FILE"
     fi
+    # Clean usage data
+    rm -f "$CC_PROJECTS/.usage_$PROJECT.json"
     json_result "✅ 项目 [$PROJECT] 已删除"
+    exit 0
+fi
+
+# ──────────────────────────────────────────────
+# Usage query (no API call, reads cached data)
+# ──────────────────────────────────────────────
+if [[ "$USAGE_MODE" == true ]]; then
+    USAGE_FILE="$CC_PROJECTS/.usage_$PROJECT.json"
+    if [[ ! -f "$USAGE_FILE" ]]; then
+        json_result "⚠️ 项目 [$PROJECT] 暂无使用数据，请先发送一条消息" true
+        exit 1
+    fi
+    USAGE_INFO=$(jq -r '
+        to_entries[] |
+        .key as $model |
+        .value |
+        ((.inputTokens // 0) + (.cacheReadInputTokens // 0) + (.cacheCreationInputTokens // 0)) as $used |
+        .contextWindow as $total |
+        "📊 \($model): \(($used * 100 / $total) | floor)% (\($used)/\($total) tokens)"
+    ' "$USAGE_FILE" 2>/dev/null)
+    json_result "$USAGE_INFO"
     exit 0
 fi
 
@@ -136,6 +161,7 @@ if [[ "$CONTENT_TRIMMED" == "/new" ]]; then
         tmp=$(jq --arg p "$PROJECT" 'del(.[$p])' "$SESSIONS_FILE")
         echo "$tmp" > "$SESSIONS_FILE"
     fi
+    rm -f "$CC_PROJECTS/.usage_$PROJECT.json"
     json_result "✅ [$PROJECT] 新对话已创建，system prompt 将在下次发送时生效。"
     exit 0
 fi
@@ -194,6 +220,17 @@ NEW_SID=$(echo "$OUTPUT" | jq -r '.session_id // empty' 2>/dev/null)
 [[ -n "$NEW_SID" ]] && save_session_id "$NEW_SID"
 
 # ──────────────────────────────────────────────
-# Output result as plain text
+# Save usage data for --usage queries
 # ──────────────────────────────────────────────
-echo "$OUTPUT" | jq -r '.result // ""' 2>/dev/null
+MODEL_USAGE=$(echo "$OUTPUT" | jq '.modelUsage // empty' 2>/dev/null)
+if [[ -n "$MODEL_USAGE" && "$MODEL_USAGE" != "null" && "$MODEL_USAGE" != "{}" ]]; then
+    # Only save if modelUsage contains at least one model with contextWindow
+    if echo "$MODEL_USAGE" | jq -e 'to_entries | length > 0 and (.[0].value.contextWindow // 0) > 0' &>/dev/null; then
+        echo "$MODEL_USAGE" > "$CC_PROJECTS/.usage_$PROJECT.json"
+    fi
+fi
+
+# ──────────────────────────────────────────────
+# Output JSON result
+# ──────────────────────────────────────────────
+echo "$OUTPUT"

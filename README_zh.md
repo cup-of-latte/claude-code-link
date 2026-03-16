@@ -49,6 +49,9 @@ cc myapp -new 重构认证模块
 # 上下文快满了？压缩一下
 cc myapp -compact
 
+# 查看上下文窗口用量
+cc myapp --usage
+
 # 不要这个项目了
 cc delete myapp
 ```
@@ -61,6 +64,7 @@ cc delete myapp
 | `cc {项目} -new` | 开启全新会话 |
 | `cc {项目} -new {消息}` | 新会话 + 发第一条消息 |
 | `cc {项目} -compact` | 压缩会话上下文 |
+| `cc {项目} --usage` | 查看上下文窗口用量（token 数量与占比） |
 | `cc create {项目}` | 创建空项目 |
 | `cc create {项目} -u {地址}` | 从 Git 仓库克隆创建项目 |
 | `cc delete {项目}` | 删除项目及会话记录 |
@@ -99,7 +103,7 @@ cc delete myapp
 
 ## 计划中的功能
 
-- [ ] **上下文窗口用量显示** — 每次回复显示 token 使用百分比（如 `📊 claude-opus-4-6: 20% (40000/200000 tokens)`）
+- [x] **上下文窗口用量显示** — `cc {项目} --usage` 查看 token 使用百分比（如 `📊 claude-opus-4-6: 20% (40000/200000 tokens)`）
 
 ## License
 

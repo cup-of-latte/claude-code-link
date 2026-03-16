@@ -51,6 +51,9 @@ cc myapp -new refactor the auth module
 # Compress context when running low
 cc myapp -compact
 
+# Check context window usage
+cc myapp --usage
+
 # Done with a project
 cc delete myapp
 ```
@@ -63,6 +66,7 @@ cc delete myapp
 | `cc {project} -new` | Start a fresh session |
 | `cc {project} -new {message}` | Fresh session + send first message |
 | `cc {project} -compact` | Compact the session context |
+| `cc {project} --usage` | Show context window usage (token count & %) |
 | `cc create {project}` | Create an empty project |
 | `cc create {project} -u {url}` | Clone a Git repo as a new project |
 | `cc delete {project}` | Delete project and session data |
@@ -101,7 +105,7 @@ User chat ──→ nanobot/openclaw ──→ cc.sh ──→ Claude Code CLI �
 
 ## Roadmap
 
-- [ ] **Context window usage display** — show token usage percentage on every response (e.g. `📊 claude-opus-4-6: 20% (40000/200000 tokens)`)
+- [x] **Context window usage display** — `cc {project} --usage` shows token usage percentage (e.g. `📊 claude-opus-4-6: 20% (40000/200000 tokens)`)
 
 ## License
 
