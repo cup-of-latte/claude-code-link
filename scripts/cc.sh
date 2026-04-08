@@ -55,8 +55,9 @@ while [[ $# -gt 0 ]]; do
         --git-url)  GIT_URL="$2";  shift 2 ;;
         --new)      NEW_SESSION=true; shift ;;
         --usage|-usg) USAGE_MODE=true; shift ;;
+        --compact)  CONTENT="/compact"; shift ;;
         -h|--help)
-            echo "Usage: cc.sh --project PROJECT [--action create|delete] [--content CONTENT] [--mode plan] [--git-url URL] [--new] [--usage]"
+            echo "Usage: cc.sh --project PROJECT [--action create|delete] [--content CONTENT] [--mode plan] [--git-url URL] [--new] [--usage] [--compact]"
             exit 0 ;;
         *)
             echo "Error: Unknown argument '$1'" >&2
@@ -126,19 +127,23 @@ fi
 # Usage query (no API call, reads cached data)
 # ──────────────────────────────────────────────
 if [[ "$USAGE_MODE" == true ]]; then
-    USAGE_FILE="$CC_PROJECTS/.usage_$PROJECT.json"
-    if [[ ! -f "$USAGE_FILE" ]]; then
+    if [[ ! -f "$SESSIONS_FILE" ]]; then
         json_result "⚠️ 项目 [$PROJECT] 暂无使用数据，请先发送一条消息" true
         exit 1
     fi
-    USAGE_INFO=$(jq -r '
+    USAGE_INFO=$(jq -r --arg p "$PROJECT" '
+        .[$p].modelUsage // empty |
         to_entries[] |
         .key as $model |
         .value |
         ((.inputTokens // 0) + (.cacheReadInputTokens // 0) + (.cacheCreationInputTokens // 0)) as $used |
         .contextWindow as $total |
         "📊 \($model): \(($used * 100 / $total) | floor)% (\($used)/\($total) tokens)"
-    ' "$USAGE_FILE" 2>/dev/null)
+    ' "$SESSIONS_FILE" 2>/dev/null)
+    if [[ -z "$USAGE_INFO" ]]; then
+        json_result "⚠️ 项目 [$PROJECT] 暂无使用数据，请先发送一条消息" true
+        exit 1
+    fi
     json_result "$USAGE_INFO"
     exit 0
 fi
@@ -170,17 +175,26 @@ fi
 # Session management
 # ──────────────────────────────────────────────
 get_session_id() {
-    [[ -f "$SESSIONS_FILE" ]] && jq -r --arg p "$PROJECT" '.[$p] // empty' "$SESSIONS_FILE" 2>/dev/null
+    [[ -f "$SESSIONS_FILE" ]] || return
+    local entry
+    entry=$(jq -c --arg p "$PROJECT" '.[$p] // empty' "$SESSIONS_FILE" 2>/dev/null)
+    [[ -z "$entry" ]] && return
+    # New format: object with session_id; old format: plain string
+    if jq -e 'type == "object"' <<< "$entry" &>/dev/null; then
+        jq -r '.session_id // empty' <<< "$entry"
+    else
+        jq -r '.' <<< "$entry"
+    fi
 }
 
 save_session_id() {
     local sid="$1"
     if [[ -f "$SESSIONS_FILE" ]]; then
         local tmp
-        tmp=$(jq --arg p "$PROJECT" --arg s "$sid" '.[$p] = $s' "$SESSIONS_FILE")
+        tmp=$(jq --arg p "$PROJECT" --arg s "$sid" '.[$p].session_id = $s' "$SESSIONS_FILE")
         echo "$tmp" > "$SESSIONS_FILE"
     else
-        jq -n --arg p "$PROJECT" --arg s "$sid" '{($p): $s}' > "$SESSIONS_FILE"
+        jq -n --arg p "$PROJECT" --arg s "$sid" '{($p): {session_id: $s}}' > "$SESSIONS_FILE"
     fi
 }
 
@@ -224,9 +238,11 @@ NEW_SID=$(echo "$OUTPUT" | jq -r '.session_id // empty' 2>/dev/null)
 # ──────────────────────────────────────────────
 MODEL_USAGE=$(echo "$OUTPUT" | jq '.modelUsage // empty' 2>/dev/null)
 if [[ -n "$MODEL_USAGE" && "$MODEL_USAGE" != "null" && "$MODEL_USAGE" != "{}" ]]; then
-    # Only save if modelUsage contains at least one model with contextWindow
     if echo "$MODEL_USAGE" | jq -e 'to_entries | length > 0 and (.[0].value.contextWindow // 0) > 0' &>/dev/null; then
-        echo "$MODEL_USAGE" > "$CC_PROJECTS/.usage_$PROJECT.json"
+        if [[ -f "$SESSIONS_FILE" ]]; then
+            tmp=$(jq --arg p "$PROJECT" --argjson u "$MODEL_USAGE" '.[$p].modelUsage = $u' "$SESSIONS_FILE")
+            echo "$tmp" > "$SESSIONS_FILE"
+        fi
     fi
 fi
 

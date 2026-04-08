@@ -1,6 +1,6 @@
 ---
 name: cc-link
-description: 通过 cc.sh 脚本调用 Claude Code CLI 执行命令并获取结构化回复（claude-code-link）。触发条件：（1）用户输入以 "cc " 开头的指令，如 `cc todolist -m 你好`、`cc todolist -new`、`cc todolist -compact`、`cc create myproject`、`cc delete myproject`；（2）用户提到 "用cc"、"claude code"、"claude代码" 等关键词。
+description: 通过 cc.sh 脚本调用 Claude Code CLI 执行命令并获取结构化回复（claude-code-link）。触发条件：（1）用户输入以 "cc " 开头的指令，如 `cc todolist -m 你好`、`cc todolist -new`、`cc todolist --compact`、`cc create myproject`、`cc delete myproject`；（2）用户提到 "用cc"、"claude code"、"claude代码" 等关键词。
 ---
 
 # CC-Link（claude-code-link）技能
@@ -26,28 +26,28 @@ jq --version # JSON 处理工具
 
 | 指令 | 说明 | 对应 cc.sh 调用 |
 |------|------|----------------|
-| `cc {project} -m {content}` | 向项目发送消息 | `bash cc.sh --project {project} --content "{content}"` |
-| `cc {project} -new [content]` | 新建会话（可选附带首条消息） | 无 content：`bash cc.sh --project {project} --content "/new"`；有 content：先 `/new` 再 `bash cc.sh --project {project} --new --content "{content}"` |
-| `cc {project} -compact` | 压缩当前会话上下文 | `bash cc.sh --project {project} --content "/compact"` |
-| `cc {project} --usage` | 查看上下文窗口使用率 | `bash cc.sh --project {project} --usage` |
+| `cc {project} -m {content}` | 向项目发送消息 | `bash {skill_dir}/scripts/cc.sh --project {project} --content "{content}"` |
+| `cc {project} -new [content]` | 新建会话（可选附带首条消息） | 无 content：`bash {skill_dir}/scripts/cc.sh --project {project} --content "/new"`；有 content：先 `/new` 再 `bash {skill_dir}/scripts/cc.sh --project {project} --new --content "{content}"` |
+| `cc {project} --compact` | 压缩当前会话上下文 | `bash {skill_dir}/scripts/cc.sh --project {project} --compact` |
+| `cc {project} --usage` | 查看上下文窗口使用率 | `bash {skill_dir}/scripts/cc.sh --project {project} --usage` |
 
 ### 项目管理指令
 
 | 指令 | 说明 | 对应 cc.sh 调用 |
 |------|------|----------------|
-| `cc create {project}` | 创建空项目 | `bash cc.sh --action create --project {project}` |
-| `cc create {project} -u {git-url}` | 从 Git 仓库克隆创建项目 | `bash cc.sh --action create --project {project} --git-url {git-url}` |
-| `cc delete {project}` | 删除项目（含会话记录） | `bash cc.sh --action delete --project {project}` |
+| `cc create {project}` | 创建空项目 | `bash {skill_dir}/scripts/cc.sh --action create --project {project}` |
+| `cc create {project} -u {git-url}` | 从 Git 仓库克隆创建项目 | `bash {skill_dir}/scripts/cc.sh --action create --project {project} --git-url {git-url}` |
+| `cc delete {project}` | 删除项目（含会话记录） | `bash {skill_dir}/scripts/cc.sh --action delete --project {project}` |
 
 ### 指令解析规则
 
 1. 输入以 `cc ` 开头，第二个词判断指令类型：
    - `create` / `delete` → 项目管理指令
-   - 其他 → 项目名，继续解析第三个词（`-m`、`-new`、`-compact`、`--usage`）
+   - 其他 → 项目名，继续解析第三个词（`-m`、`-new`、`--compact`、`--usage`）
 2. `-m` 后面跟随的所有文字为 `CONTENT`，**完整保留，不截断**
 3. `-new` 后面如果有文字，则为新会话的首条消息 `CONTENT`；没有则仅清除会话
 4. `-u` 后面为 Git 仓库 URL
-5. `-compact`、`--usage` 和 `delete` 无需额外内容
+5. `--compact`、`--usage` 和 `delete` 无需额外内容
 
 ### 指令示例
 
@@ -55,7 +55,7 @@ jq --version # JSON 处理工具
 cc todolist -m 添加用户登录功能
 cc todolist -new
 cc todolist -new 帮我写一个自我介绍
-cc todolist -compact
+cc todolist --compact
 cc create myproject
 cc create myproject -u https://github.com/user/repo.git
 cc delete myproject
@@ -93,7 +93,7 @@ cc todolist --usage
 | `cc todolist -m 添加登录功能` | 发送消息 | `--project todolist --content "添加登录功能"` |
 | `cc todolist -new` | 仅新建会话 | `--project todolist --content "/new"` |
 | `cc todolist -new 帮我写自我介绍` | 新建 + 发送 | 先 `--content "/new"`，再 `--project todolist --new --content "帮我写自我介绍"` |
-| `cc todolist -compact` | 压缩上下文 | `--project todolist --content "/compact"` |
+| `cc todolist --compact` | 压缩上下文 | `--project todolist --compact` |
 | `cc todolist --usage` | 查看上下文使用率 | `--project todolist --usage` |
 | `cc create demo` | 创建项目 | `--action create --project demo` |
 | `cc create demo -u https://...` | 克隆创建 | `--action create --project demo --git-url "https://..."` |
@@ -134,9 +134,9 @@ cc todolist --usage
 
 ```bash
 # 第一步：清除旧会话
-bash {skill_dir}/cc.sh --project "PROJECT" --content "/new"
+bash {skill_dir}/scripts/cc.sh --project "PROJECT" --content "/new"
 # 第二步：立即发送首条消息（不等待、不确认）
-bash {skill_dir}/cc.sh --project "PROJECT" --new --content "CONTENT"
+bash {skill_dir}/scripts/cc.sh --project "PROJECT" --new --content "CONTENT"
 ```
 
 ### 规则三：原样透传结果，禁止加工
@@ -155,20 +155,20 @@ bash {skill_dir}/cc.sh --project "PROJECT" --new --content "CONTENT"
 
 ```bash
 # 发送消息
-bash {skill_dir}/cc.sh --project "PROJECT" --content "CONTENT"
+bash {skill_dir}/scripts/cc.sh --project "PROJECT" --content "CONTENT"
 
 # Plan 模式
-bash {skill_dir}/cc.sh --project "PROJECT" --content "CONTENT" --mode plan
+bash {skill_dir}/scripts/cc.sh --project "PROJECT" --content "CONTENT" --mode plan
 
 # 强制新建会话
-bash {skill_dir}/cc.sh --project "PROJECT" --content "CONTENT" --new
+bash {skill_dir}/scripts/cc.sh --project "PROJECT" --content "CONTENT" --new
 
 # 创建项目
-bash {skill_dir}/cc.sh --action create --project "PROJECT"
-bash {skill_dir}/cc.sh --action create --project "PROJECT" --git-url "URL"
+bash {skill_dir}/scripts/cc.sh --action create --project "PROJECT"
+bash {skill_dir}/scripts/cc.sh --action create --project "PROJECT" --git-url "URL"
 
 # 删除项目
-bash {skill_dir}/cc.sh --action delete --project "PROJECT"
+bash {skill_dir}/scripts/cc.sh --action delete --project "PROJECT"
 ```
 
 ### 3. 返回结果
